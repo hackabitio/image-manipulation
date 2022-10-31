@@ -94,7 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("-q", "--quality", type=int, help="Quality ranging from a minimum of 0 (worst) to a maximum of 95 (best). Default is 90", default=90)
     parser.add_argument("-r", "--resize-ratio", type=float, help="Resizing ratio from 0 to 1, setting to 0.5 will multiply width & height of the image by 0.5. Default is 1.0", default=1.0)
     parser.add_argument("-w", "--width", type=int, help="The new width image, make sure to set it with the `height` parameter")
-    parser.add_argument("-hh", "--height", type=int, help="The new height for the image, make sure to set it with the `width` parameter")
+    parser.add_argument("-hi", "--height", type=int, help="The new height for the image, make sure to set it with the `width` parameter")
     parser.add_argument("-dpi", "--dpi", type=int, help="New Image DPI (Dots per inch)")
     parser.add_argument("-mm", "--mm", action="store_true", help="Set width and height as MM instead of pixels")
     parser.add_argument("-c", "--convert", type=str, help="Whether to convert the PNG mode or not. Possible values are: `1`, `L`, `LA`, `P`, `PA`, `RGB`, `RGBA`, `CMYK`")
