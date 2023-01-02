@@ -14,7 +14,7 @@ def get_size_format(b, factor=1024, suffix="B"):
         b /= factor
     return f"{b:.2f}Y{suffix}"
 
-def compress_img(image_name, new_size_ratio=9.0, quality=90, width=None, height=None, to_jpg=False, to_webp=False, convert=None, dpi=None, toMM=False):
+def compress_img(image_name, new_size_ratio=9.0, quality=90, width=None, height=None, to_jpg=False, to_webp=False, convert=None, dpi=None, toMM=False, crop=False, save_all=False):
     # load the image to memory
     img = Image.open(image_name)
     # print the original image shape
@@ -36,10 +36,25 @@ def compress_img(image_name, new_size_ratio=9.0, quality=90, width=None, height=
         # print new image shape
         print("[+] New Image shape:", img.size)
     elif width and height:
-        # if width and height are set, resize with them instead
-        img = img.resize((width, height), Image.ANTIALIAS)
+        # Crop image
+        if crop:
+            crop_ratio = 1
+            if crop == 'x':
+                crop_ratio = img.size[1] / height
+                img = img.resize((int(img.size[0] / crop_ratio), height), Image.Resampling.LANCZOS)
+                print("[+] Image resized to:", img.size)
+            elif crop == 'y':
+                crop_ratio = img.size[0] / width
+                img = img.resize((width, int(img.size[1] / crop_ratio)), Image.Resampling.LANCZOS)
+                print("[+] Image resized to:", img.size)
+            img = img.crop((0, 0, width, height))
+            print("[+] Image croped to:", img.size, "with the ratio of:", crop_ratio)
+        else:
+            # if width and height are set, resize with them
+            img = img.resize((width, height), Image.Resampling.LANCZOS)
         # print new image shape
         print("[+] New Image shape:", img.size)
+
     # split the filename and extension
     filename, ext = os.path.splitext(image_name)
     # make new filename appending _compressed to the original file name
@@ -58,14 +73,14 @@ def compress_img(image_name, new_size_ratio=9.0, quality=90, width=None, height=
     try:
         # save the image with the corresponding quality and optimize set to True
         if dpi:
-            img.save(new_filename, quality=quality, optimize=True, dpi=(dpi,dpi))
+            img.save(new_filename, quality=quality, optimize=True, dpi=(dpi,dpi), save_all=save_all)
         else:
-            img.save(new_filename, quality=quality, optimize=True)
+            img.save(new_filename, quality=quality, optimize=True, save_all=save_all)
     except OSError:
         # convert the image to RGB mode first
         img = img.convert("RGB")
         # save the image with the corresponding quality and optimize set to True
-        img.save(new_filename, quality=quality, optimize=True)
+        img.save(new_filename, quality=quality, optimize=True, save_all=save_all)
     print("[+] New file saved:", new_filename)
     # get the new image size in bytes
     new_image_size = os.path.getsize(new_filename)
@@ -82,7 +97,7 @@ def scan_dir(path, args):
         if image != '.DS_Store':
             image_path = path + image
             print("-"*50)
-            compress_img(image_path, args.resize_ratio, args.quality, args.width, args.height, args.to_jpg, args.to_webp, args.convert, args.dpi, args.mm)
+            compress_img(image_path, args.resize_ratio, args.quality, args.width, args.height, args.to_jpg, args.to_webp, args.convert, args.dpi, args.mm, args.crop, args.save_all)
 
 if __name__ == "__main__":
     import argparse
@@ -90,6 +105,7 @@ if __name__ == "__main__":
     parser.add_argument("image", help="Target image to compress and/or resize")
     parser.add_argument("-j", "--to-jpg", action="store_true", help="Whether to convert the image to the JPEG format")
     parser.add_argument("-p", "--to-webp", action="store_true", help="Whether to convert the image to the webp format")
+    parser.add_argument("-sa", "--save-all", action="store_true", help="This will set save_all attribute of Pillow to true, useful for animated GIF iamges")
     parser.add_argument("-d", "--directory", action="store_true", help="Whether scan directory or single image")
     parser.add_argument("-q", "--quality", type=int, help="Quality ranging from a minimum of 0 (worst) to a maximum of 95 (best). Default is 90", default=90)
     parser.add_argument("-r", "--resize-ratio", type=float, help="Resizing ratio from 0 to 1, setting to 0.5 will multiply width & height of the image by 0.5. Default is 1.0", default=1.0)
@@ -98,6 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("-dpi", "--dpi", type=int, help="New Image DPI (Dots per inch)")
     parser.add_argument("-mm", "--mm", action="store_true", help="Set width and height as MM instead of pixels")
     parser.add_argument("-c", "--convert", type=str, help="Whether to convert the PNG mode or not. Possible values are: `1`, `L`, `LA`, `P`, `PA`, `RGB`, `RGBA`, `CMYK`")
+    parser.add_argument("-cr", "--crop", type=str, help="Crop the image across spesified axis. Possible values are: `x` or `y`")
     args = parser.parse_args()
     # print the passed arguments
     print("="*50)
@@ -109,6 +126,8 @@ if __name__ == "__main__":
     print("[*] To webp:", args.to_webp)
     print("[*] Quality:", args.quality)
     print("[*] Resizing ratio:", args.resize_ratio)
+    if args.crop:
+        print("[*] Croping acros:", args.crop)
     if args.width and args.height:
         print("[*] Width:", args.width)
         print("[*] Height:", args.height)
@@ -117,4 +136,4 @@ if __name__ == "__main__":
     if args.directory:
         scan_dir(args.image, args)
     else:
-        compress_img(args.image, args.resize_ratio, args.quality, args.width, args.height, args.to_jpg, args.to_webp, args.convert, args.dpi, args.mm)
+        compress_img(args.image, args.resize_ratio, args.quality, args.width, args.height, args.to_jpg, args.to_webp, args.convert, args.dpi, args.mm, args.crop, args.save_all)
